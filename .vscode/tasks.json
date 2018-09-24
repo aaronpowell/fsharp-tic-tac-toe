@@ -1,0 +1,48 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "fake:build",
+            "command": "fake",
+            "args": [
+                "run",
+                "build.fsx",
+                "target",
+                "build"
+            ],
+            "windows": {
+                "options": {
+                    "shell": {
+                        "executable": "powershell.exe"
+                    }
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "fake:run",
+            "command": "fake",
+            "args": [
+                "run",
+                "build.fsx",
+                "target",
+                "run"
+            ],
+            "windows": {
+                "options": {
+                    "shell": {
+                        "executable": "powershell.exe"
+                    }
+                }
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ]
+        }
+    ]
+}
