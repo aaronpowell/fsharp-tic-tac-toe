@@ -1,8 +1,13 @@
-namespace Shared
+module Shared
 
 type Position = char * int
-type Board = Map<Position, char>
+type Player =
+    | X
+    | O
+    | Blank
+type Board = Map<Position, Player>
 type Model =
     { Rows : int list
       Cols : char list
-      Board: Board }
+      Board: Board
+      ServerMoving: bool }

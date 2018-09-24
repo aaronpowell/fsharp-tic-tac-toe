@@ -10,17 +10,18 @@ open Fable.PowerPack.Fetch
 open Shared
 
 open Fulma
+open Fable.Core.JsInterop
 
 // The Msg type defines what events/actions can occur while the application is running
 // the state of the application changes *only* in reaction to these events
 type Msg =
 | PlayMove of Position
 | InitialGameLoaded of Result<Board, exn>
-
+| ServerMove of Result<Position, exn>
 
 // defines the initial state and initial command (= side-effect) of the application
 let init () : Model * Cmd<Msg> =
-    let initialModel = { Rows = [1..3]; Cols = ['A'..'C']; Board = Map.empty }
+    let initialModel = { Rows = [1..3]; Cols = ['A'..'C']; Board = Map.empty; ServerMoving = false }
     let loadCountCmd =
         Cmd.ofPromise
             (fetchAs<Board> "/api/init")
@@ -35,14 +36,27 @@ let init () : Model * Cmd<Msg> =
 let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
     match msg with
     | PlayMove position ->
-        let nextModel = { currentModel with Board = Map.add position 'X' currentModel.Board }
-        nextModel, Cmd.none
+        let nextModel = { currentModel with Board = Map.add position X currentModel.Board; ServerMoving = true }
+
+        let defaultProps =
+            [ RequestProperties.Method HttpMethod.POST
+            ; requestHeaders [ContentType "application/json"]
+            ; RequestProperties.Body <| unbox(toJson nextModel)]
+        let playServer =
+            Cmd.ofPromise
+                (fetchAs<Position> "/api/move")
+                defaultProps
+                (Ok >> ServerMove)
+                (Error >> ServerMove)
+        nextModel, playServer
     | InitialGameLoaded (Ok initialBoard)->
-        let nextModel = { Rows = [1..3]; Cols = ['A'..'C']; Board = initialBoard }
+        let nextModel = { Rows = [1..3]; Cols = ['A'..'C']; Board = initialBoard; ServerMoving = false }
+        nextModel, Cmd.none
+    | ServerMove (Ok pos) ->
+        let nextModel = { currentModel with Board = Map.add pos O currentModel.Board; ServerMoving = false }
         nextModel, Cmd.none
 
     | _ -> currentModel, Cmd.none
-
 
 let safeComponents =
     let components =
@@ -62,6 +76,26 @@ let safeComponents =
           str " powered by: "
           components ]
 
+let renderView dispatch pos cell serverMoving =
+    let cellToStr cell =
+        match cell with
+        | X -> "X"
+        | O -> "O"
+        | Blank -> ""
+
+
+    if serverMoving then
+        td [] [ cellToStr cell |> str ]
+    else
+        td [ OnClick(fun _ -> PlayMove(pos) |> dispatch)] [ cellToStr cell |> str ]
+
+let renderCell dispatch pos state =
+    match Map.tryFind pos state.Board with
+    | Some cell ->
+        renderView dispatch pos cell state.ServerMoving
+    | _ ->
+        renderView dispatch pos Blank state.ServerMoving
+
 let view (model : Model) (dispatch : Msg -> unit) =
     div []
         [ Navbar.navbar [ Navbar.Color IsPrimary ]
@@ -73,31 +107,17 @@ let view (model : Model) (dispatch : Msg -> unit) =
                   Table.table [ Table.IsFullWidth ] [
                     thead [] [
                         tr [] [
-                            th[] []
-                            th[] [ str "A" ]
-                            th[] [ str "B" ]
-                            th[] [ str "C" ]
+                            yield th[] []
+                            for col in model.Cols ->
+                                th[] [ string col |> str ]
                         ]
                      ]
                     tbody [] [
-                        tr [] [
-                            td [] [ str "1" ]
-                            td [] [ str "" ]
-                            td [] [ str "" ]
-                            td [] [ str "" ]
-                        ]
-                        tr [] [
-                            td [] [ str "2" ]
-                            td [] [ str "" ]
-                            td [] [ str "" ]
-                            td [] [ str "" ]
-                        ]
-                        tr [] [
-                            td [] [ str "2" ]
-                            td [] [ str "" ]
-                            td [] [ str "" ]
-                            td [] [ str "" ]
-                        ]
+                        for row in model.Rows ->
+                            tr [] [
+                              yield th [] [ string row |> str ]
+                              for col in model.Cols -> renderCell dispatch (col, row) model
+                            ]
                     ]
                   ]
               ]
