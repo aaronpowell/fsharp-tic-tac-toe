@@ -28,9 +28,8 @@
             "label": "fake:run",
             "command": "fake",
             "args": [
-                "run",
-                "build.fsx",
-                "target",
+                "build",
+                "--target",
                 "run"
             ],
             "windows": {
