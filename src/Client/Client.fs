@@ -36,19 +36,22 @@ let init () : Model * Cmd<Msg> =
 let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
     match msg with
     | PlayMove position ->
-        let nextModel = { currentModel with Board = Map.add position X currentModel.Board; ServerMoving = true }
+        match currentModel.Board |> Map.tryFind position with
+        | Some _ -> currentModel, Cmd.Empty
+        | None ->
+            let nextModel = { currentModel with Board = Map.add position X currentModel.Board; ServerMoving = true }
 
-        let defaultProps =
-            [ RequestProperties.Method HttpMethod.POST
-            ; requestHeaders [ContentType "application/json"]
-            ; RequestProperties.Body <| unbox(toJson nextModel)]
-        let playServer =
-            Cmd.ofPromise
-                (fetchAs<Position> "/api/move")
-                defaultProps
-                (Ok >> ServerMove)
-                (Error >> ServerMove)
-        nextModel, playServer
+            let defaultProps =
+                [ RequestProperties.Method HttpMethod.POST
+                ; requestHeaders [ContentType "application/json"]
+                ; RequestProperties.Body <| unbox(toJson nextModel)]
+            let playServer =
+                Cmd.ofPromise
+                    (fetchAs<Position> "/api/move")
+                    defaultProps
+                    (Ok >> ServerMove)
+                    (Error >> ServerMove)
+            nextModel, playServer
     | InitialGameLoaded (Ok initialBoard)->
         let nextModel = { Rows = [1..3]; Cols = ['A'..'C']; Board = initialBoard; ServerMoving = false }
         nextModel, Cmd.none
