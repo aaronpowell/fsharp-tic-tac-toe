@@ -6,7 +6,7 @@ open Microsoft.Extensions.DependencyInjection
 open FSharp.Control.Tasks.V2
 open Giraffe
 open Saturn
-open Shared
+open Models
 
 open Giraffe.Serialization
 

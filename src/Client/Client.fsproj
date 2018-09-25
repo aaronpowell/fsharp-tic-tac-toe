@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/Models.fs" />
+    <Compile Include="../Shared/Win.fs" />
     <Compile Include="Actions.fs" />
     <Compile Include="Reducers.fs" />
     <Compile Include="Views.fs" />

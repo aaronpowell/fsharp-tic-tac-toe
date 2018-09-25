@@ -4,7 +4,7 @@ open Fable.Helpers.React
 open Fable.Helpers.React.Props
 
 open Actions
-open Shared
+open Models
 
 open Fulma
 
@@ -26,18 +26,17 @@ let private safeComponents =
           str " powered by: "
           components ]
 
+let private playerToStr cell =
+    match cell with
+    | X -> "X"
+    | O -> "O"
+    | Blank -> ""
+
 let private renderView dispatch pos cell serverMoving =
-    let cellToStr cell =
-        match cell with
-        | X -> "X"
-        | O -> "O"
-        | Blank -> ""
-
-
     if serverMoving then
-        td [] [ cellToStr cell |> str ]
+        td [] [ playerToStr cell |> str ]
     else
-        td [ OnClick(fun _ -> PlayMove(pos) |> dispatch)] [ cellToStr cell |> str ]
+        td [ OnClick(fun _ -> PlayMove(pos) |> dispatch)] [ playerToStr cell |> str ]
 
 let private renderCell dispatch pos state =
     match Map.tryFind pos state.Board with
@@ -45,6 +44,27 @@ let private renderCell dispatch pos state =
         renderView dispatch pos cell state.ServerMoving
     | _ ->
         renderView dispatch pos Blank state.ServerMoving
+
+
+let private renderWin winner dispatch =
+    match winner with
+    | Some w ->
+        Modal.modal [ Modal.IsActive true ] [
+            Modal.background [ ] [ ]
+            Modal.Card.card [ ] [
+                Modal.Card.title [] [ str "There was a winner!" ]
+                Modal.Card.body [] [
+                    (sprintf "The winner is %s" (w |> playerToStr)) |> str
+                ]
+                Modal.Card.foot [] [
+                    Button.button [
+                        Button.Color IsSuccess
+                        Button.OnClick (fun _ -> dispatch NewGame) ] [ str "New game?" ]
+                ]
+            ]
+        ]
+    | None ->
+        p [] []
 
 let view model dispatch =
     div []
@@ -70,6 +90,7 @@ let view model dispatch =
                             ]
                     ]
                   ]
+                  renderWin model.Winner dispatch
               ]
 
           Footer.footer [ ]
